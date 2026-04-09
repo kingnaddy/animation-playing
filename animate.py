@@ -4,7 +4,7 @@ import numpy as np
 
 st.set_page_config(page_title="Plotly Animation Demo", layout="wide")
 
-st.title("3 Basic Plotly Animations in Streamlit")
+st.title("4 Basic Plotly Animations in Streamlit")
 
 animation_choice = st.selectbox(
     "Choose an animation",
@@ -12,6 +12,7 @@ animation_choice = st.selectbox(
         "Rotating 3D Helix",
         "Moving Sine Wave",
         "Bouncing Ball",
+        "Waving Flag",
     ],
 )
 
@@ -238,11 +239,134 @@ def bouncing_ball():
     return fig
 
 
+def waving_flag():
+    x = np.linspace(0, 4, 60)
+    y = np.linspace(0, 2, 35)
+    X, Y = np.meshgrid(x, y)
+
+    surface_colors = np.zeros_like(X)
+    surface_colors[(Y >= 2 / 3) & (Y < 4 / 3)] = 0.5
+    surface_colors[Y >= 4 / 3] = 1.0
+
+    colorscale = [
+        [0.0, "red"],
+        [0.33, "red"],
+        [0.33, "white"],
+        [0.66, "white"],
+        [0.66, "blue"],
+        [1.0, "blue"],
+    ]
+
+    frames = []
+    for i in range(num_frames):
+        phase = 2 * np.pi * i / num_frames
+
+        amplitude = 0.22 * (X / X.max())
+        Z = amplitude * np.sin(2 * np.pi * (X / 1.8 - i / num_frames))
+        Z += 0.04 * (X / X.max()) * np.sin(4 * np.pi * (X / 1.8 - i / num_frames))
+
+        frames.append(
+            go.Frame(
+                data=[
+                    go.Surface(
+                        x=X,
+                        y=Y,
+                        z=Z,
+                        surfacecolor=surface_colors,
+                        colorscale=colorscale,
+                        cmin=0,
+                        cmax=1,
+                        showscale=False,
+                    ),
+                    go.Scatter3d(
+                        x=[0, 0],
+                        y=[0, 2],
+                        z=[0, 0],
+                        mode="lines",
+                        line=dict(color="gray", width=8),
+                    ),
+                ],
+                name=str(i),
+            )
+        )
+
+    initial_amplitude = 0.22 * (X / X.max())
+    initial_Z = initial_amplitude * np.sin(2 * np.pi * (X / 1.8))
+    initial_Z += 0.04 * (X / X.max()) * np.sin(4 * np.pi * (X / 1.8))
+
+    fig = go.Figure(
+        data=[
+            go.Surface(
+                x=X,
+                y=Y,
+                z=initial_Z,
+                surfacecolor=surface_colors,
+                colorscale=colorscale,
+                cmin=0,
+                cmax=1,
+                showscale=False,
+            ),
+            go.Scatter3d(
+                x=[0, 0],
+                y=[0, 2],
+                z=[0, 0],
+                mode="lines",
+                line=dict(color="gray", width=8),
+            ),
+        ],
+        frames=frames,
+    )
+
+    fig.update_layout(
+        title="Waving Flag",
+        scene=dict(
+            xaxis=dict(visible=False, range=[-0.2, 4.2]),
+            yaxis=dict(visible=False, range=[-0.2, 2.2]),
+            zaxis=dict(visible=False, range=[-0.5, 0.5]),
+            aspectratio=dict(x=2.8, y=1.4, z=0.8),
+            camera=dict(eye=dict(x=1.6, y=-1.8, z=0.8)),
+        ),
+        updatemenus=[
+            {
+                "type": "buttons",
+                "buttons": [
+                    {
+                        "label": "Play",
+                        "method": "animate",
+                        "args": [
+                            None,
+                            {
+                                "frame": {"duration": 60, "redraw": True},
+                                "fromcurrent": True,
+                            },
+                        ],
+                    },
+                    {
+                        "label": "Pause",
+                        "method": "animate",
+                        "args": [
+                            [None],
+                            {
+                                "frame": {"duration": 0, "redraw": False},
+                                "mode": "immediate",
+                            },
+                        ],
+                    },
+                ],
+            }
+        ],
+        margin=dict(l=0, r=0, t=50, b=0),
+    )
+    return fig
+
+
 if animation_choice == "Rotating 3D Helix":
     fig = rotating_3d_helix()
 elif animation_choice == "Moving Sine Wave":
     fig = moving_sine_wave()
-else:
+elif animation_choice == "Bouncing Ball":
     fig = bouncing_ball()
+else:
+    fig = waving_flag()
 
 st.plotly_chart(fig, use_container_width=True)
